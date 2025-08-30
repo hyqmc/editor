@@ -383,108 +383,25 @@
             }
         };
 
-        const generateReport = async () => {
-            const form = document.getElementById('assessment-data');
-            const formData = new FormData(form);
-            const scores = {};
-            const scoresBySubdomain = {};
-            let ageGroup = '';
-
-            const ageGroupDisplay = document.querySelector('#assessment-form h3');
-            if (ageGroupDisplay) {
-                const match = ageGroupDisplay.textContent.match(/Faixa Etária de Avaliação: (\S+)/);
-                if (match) {
-                    ageGroup = match[1];
-                }
-            }
-            
-            for (let [name, value] of formData.entries()) {
-                const parts = name.split('-');
-                const type = parts[0];
-                const domain = parts[1];
-                const subdomain = parts[2];
-                const questionIndex = parseInt(parts[3]);
-                
-                if (!scoresBySubdomain[domain]) scoresBySubdomain[domain] = {};
-                if (!scoresBySubdomain[domain][subdomain]) scoresBySubdomain[domain][subdomain] = [];
-                
-                const questionData = evaluationData[ageGroup].domains[domain].subdomains[subdomain][questionIndex];
-                
-                scoresBySubdomain[domain][subdomain].push({
-                    question: questionData.question,
-                    type: type,
-                    value: parseInt(value),
-                    domain: domain,
-                    subdomain: subdomain
-                });
-            }
-
-            let reportText = '';
-            
-            for (const domainKey in scoresBySubdomain) {
-                reportText += `<h4 class="text-xl font-bold mt-6 mb-2 text-blue-800">${domainKey}</h4>`;
-                for (const subdomainKey in scoresBySubdomain[domainKey]) {
-                    const questions = scoresBySubdomain[domainKey][subdomainKey];
-                    let perfSum = 0;
-                    let perfCount = 0;
-                    
-                    reportText += `<h5 class="font-semibold mt-4 mb-2 text-blue-600">${subdomainKey}</h5>`;
-                    
-                    questions.forEach(q => {
-                        if (q.type === 'desempenho' && !isNaN(q.value)) {
-                            perfSum += q.value;
-                            perfCount++;
-                        }
-                    });
-                    
-                    const avgPerf = perfCount > 0 ? (perfSum / perfCount).toFixed(2) : 'N/A';
-                    reportText += `<p class="italic mb-2 text-sm text-gray-600">Média de Desempenho do Subdomínio: ${avgPerf}</p>`;
-                    
-                    if (avgPerf < 3) {
-                        const previousAgeGroup = getAgeGroup(calculateAge(document.getElementById('dob').value) - 12);
-                        reportText += `<p class="font-bold text-red-500 mt-2">Critério de Regressão: A média de desempenho (${avgPerf}) é inferior a 3. Recomenda-se a avaliação deste subdomínio na faixa etária anterior (${previousAgeGroup}).</p>`;
-                    } else {
-                         reportText += `<p class="font-bold text-green-500 mt-2">Resultado da Avaliação: O desenvolvimento neste subdomínio é considerado típico para a faixa etária atual.</p>`;
-                    }
-                    
-                    // Geração do descritivo textual
-                    let descriptiveParagraph = '';
-                    questions.forEach(q => {
-                         if (q.type === 'desempenho' && !isNaN(q.value)) {
-                            descriptiveParagraph += `<p class="text-sm mt-1">**${q.question}**: ${descriptiveTexts.desempenho[q.value]}</p>`;
-                        }
-                        if (q.type === 'suporte' && !isNaN(q.value)) {
-                            descriptiveParagraph += `<p class="text-sm mt-1">**Nível de Suporte**: ${descriptiveTexts.suporte[q.value]}</p>`;
-                        }
-                    });
-                    reportText += `<div class="bg-gray-100 p-4 rounded-md mt-4 border-l-4 border-gray-400">${descriptiveParagraph}</div>`;
-                }
-            }
-
-            const reportOutput = document.getElementById('report-output');
-            reportOutput.innerHTML = reportText;
-            document.getElementById('assessment-container').classList.add('hidden');
-            document.getElementById('report-container').classList.remove('hidden');
-        };
-
-        const exportReport = () => {
-             const reportContent = document.getElementById('report-output').innerText;
-            if (!reportContent) {
-                alert("Nenhum relatório para exportar.");
-                return;
-            }
-
-            const patientName = document.getElementById('patient-name').value || 'avaliado';
-            const fileName = `Relatorio_${patientName}_${formatDate(new Date())}.txt`;
-            
-            const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            alert("Relatório exportado com sucesso!");
+        const finishAssessment = () => {
+             const form = document.getElementById('assessment-data');
+             const formData = new FormData(form);
+             
+             // Aqui você pode adicionar a lógica para salvar os dados em um banco de dados
+             // ou simplesmente processá-los como necessário.
+             // Por enquanto, apenas registramos no console.
+             const assessmentData = {};
+             for (let [name, value] of formData.entries()) {
+                 assessmentData[name] = value;
+             }
+             console.log("Avaliação finalizada e dados coletados:", assessmentData);
+             
+             // Voltar à tela inicial
+             document.getElementById('assessment-intro').classList.remove('hidden');
+             document.getElementById('assessment-container').classList.add('hidden');
+             document.getElementById('assessment-form').innerHTML = '';
+             
+             alert("Avaliação finalizada com sucesso!");
         };
 
         document.getElementById('start-assessment-btn').addEventListener('click', () => {
@@ -503,20 +420,12 @@
 
             document.getElementById('assessment-intro').classList.add('hidden');
             document.getElementById('assessment-container').classList.remove('hidden');
-            document.getElementById('report-container').classList.add('hidden');
 
             renderAssessmentForm(initialAgeGroup);
         });
 
-        document.getElementById('save-assessment-btn').addEventListener('click', generateReport);
-        document.getElementById('export-report-btn').addEventListener('click', exportReport);
-
-        document.getElementById('back-to-home-btn').addEventListener('click', () => {
-            document.getElementById('assessment-intro').classList.remove('hidden');
-            document.getElementById('assessment-container').classList.add('hidden');
-            document.getElementById('report-container').classList.add('hidden');
-            document.getElementById('assessment-form').innerHTML = '';
-        });
+        document.getElementById('finish-assessment-btn').addEventListener('click', finishAssessment);
+        
     </script>
 </head>
 <body class="bg-gray-100 p-8">
@@ -558,32 +467,15 @@
         <div id="assessment-container" class="hidden">
             <div id="assessment-form"></div>
             
-            <div class="mt-8 flex justify-between space-x-4">
-                <button id="save-assessment-btn" class="flex-1 bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-green-700 transition duration-200">
-                    Gerar Relatório
+            <div class="mt-8 flex justify-center">
+                <button id="finish-assessment-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-green-700 transition duration-200">
+                    Finalizar Avaliação
                 </button>
-            </div>
-        </div>
-        
-        <div id="report-container" class="hidden mt-8">
-            <h2 class="text-2xl font-semibold mb-4 text-center">Relatório de Avaliação</h2>
-            <div id="report-output" class="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-200"></div>
-            <div class="mt-6 flex justify-between space-x-4">
-                <button id="export-report-btn" class="flex-1 bg-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-purple-700 transition duration-200">
-                    Exportar Relatório
-                </button>
-                <button id="back-to-home-btn" class="flex-1 bg-gray-500 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-gray-600 transition duration-200">
-                    Voltar ao Início
-                </button>
-            </div>
-        </div>
-        
-        <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden">
-            <div class="bg-white p-6 rounded-xl shadow-lg">
-                <p>Gerando relatório...</p>
             </div>
         </div>
     </div>
 
 </body>
+</html>
+
 </html>
