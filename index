@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PREVIMMUS - Avaliação Musicoterapêutica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group label {
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .input-group input, .input-group select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background-color: #f8fafc;
+            transition: all 0.2s ease-in-out;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .score-input {
+            width: 80px;
+        }
+        
+        /* Cor de fundo para as idades */
+        .age-group-1 { background-color: #fbcfe8; } /* rosa claro - primeira infância */
+        .age-group-2 { background-color: #bfdbfe; } /* azul claro - segunda infância */
+        .age-group-3 { background-color: #bbf7d0; } /* verde claro - terceira infância */
+        .age-group-4 { background-color: #86efac; } /* verde mais escuro - terceira infância */
+        
+        /* Cores para pontuações de desempenho */
+        .score-0 { background-color: #ef4444; color: white; } /* Vermelho forte */
+        .score-1 { background-color: #f87171; } /* Vermelho claro */
+        .score-2 { background-color: #fcd34d; } /* Amarelo */
+        .score-3 { background-color: #bef264; } /* Verde amarelado */
+        .score-4 { background-color: #4ade80; } /* Verde claro */
+        .score-5 { background-color: #22c55e; color: white; } /* Verde escuro */
+        .score-null { background-color: #e2e8f0; } /* Cinza */
+        
+        .score-label-desempenho {
+            color: #000;
+        }
+        .score-label-suporte {
+            color: #000;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const __app_id = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const __firebase_config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+        let userId;
+
+        const app = initializeApp(__firebase_config);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        
+        const evaluationsCollectionPath = (uid) => `/artifacts/${__app_id}/users/${uid}/evaluations`;
+        
+        // Dados estáticos da avaliação para cada faixa etária
+        // Dados extraídos dos arquivos CSV fornecidos
+        const evaluationData = {
+            '0-1': {
+                domains: {
+                    'SENSORIOMOTOR': {
+                        subdomains: {
+                            'AUTO-CONSCIÊNCIA CORPORAL': [
+                                { question: 'O bebê demonstra controle básico da cabeça enquanto ouve música, muitas vezes buscando a fonte sonora?' },
+                                { question: 'O bebê responde a sons musicais com movimentos corporais, como mexer braços e pernas?' },
+                                { question: 'O bebê bate palmas ou faz movimentos com as mãos em resposta à música (incluindo o levar as mãos a boca)?' },
+                                { question: 'Senta sozinho com a intensão de participar de atividades intra e intermusicais?' }
+                            ],
+                            'COM OBJETOS': [
+                                { question: 'O bebê tenta alcançar objetos que produzem som?' },
+                                { question: 'O bebê tenta agarrar e segurar brinquedos musicais, como chocalhos?' },
+                                { question: 'O bebê explora instrumentos musicais simples, como tambores de brinquedo, com as mãos?' },
+                                { question: 'Possui preensão com ambas as mãos: Segura os instrumentos musicais (agarra)?' }
+                            ],
+                            'COM O AMBIENTE': [
+                                { question: 'Explora o ambiente nos braços de terceiros?' },
+                                { question: 'Explora o ambiente engatinhando?' },
+                                { question: 'Explora o ambiente sentado?' },
+                                { question: 'Explora o ambiente ficando em pé com apoio?' }
+                            ]
+                        }
+                    },
+                    'COMUNICAÇÃO': {
+                         subdomains: {
+                            'COM O PRÓPRIO CORPO': [
+                                { question: 'O bebê emite sons espontaneamente?' },
+                                { question: 'O bebê repete sílabas ou palavras que ouve?' },
+                                { question: 'O bebê responde a perguntas?' },
+                                { question: 'O bebê tenta cantar ou imitar melodias simples?' }
+                            ]
+                        }
+                    }
+                }
+            },
+            '1-2': {
+                 domains: {
+                    'SENSORIOMOTOR': {
+                        subdomains: {
+                            'AUTO-CONSCIÊNCIA CORPORAL': [
+                                { question: 'O bebê responde a ritmos musicais com movimentos corporais, como balançar ou bater palmas?' },
+                                { question: 'O bebê demonstra habilidades motoras grossas ao dançar ou pular ao som de música?' },
+                                { question: 'Faz imitações coreográficas de uma canção (música cabeça, ombro, joelho e pé)?' },
+                                { question: 'O bebê apresenta controle motor e lateralidade (com um pé só, roda, corre)?' }
+                            ],
+                            'COM OBJETOS': [
+                                { question: 'Segura as baquetas e toca com ambas as mãos? (Mãos fechadas)' },
+                                { question: 'Toca o tambor sem baquetas? (Mãos abertas)' },
+                                { question: 'Coloca pequenos recipientes (sementes) na garrafa? (Movimento de pinça)' },
+                                { question: 'Enrosca ou desenrosca a cabeça de um microfone? (Rotação de punho)' }
+                            ],
+                            'COM O AMBIENTE': [
+                                { question: 'Explora o ambiente correndo?' },
+                                { question: 'Senta na cadeira?' },
+                                { question: 'Sobe e desce escadas?' },
+                                { question: 'Guarda os objetos sem ajuda após as atividades?' }
+                            ]
+                        }
+                    }
+                }
+            },
+            '2-3': {
+                 domains: {
+                    'SENSORIOMOTOR': {
+                        subdomains: {
+                            'AUTO-CONSCIÊNCIA CORPORAL': [
+                                { question: 'Imita gestos simples durante a música? (Ex: bater palmas, acenar)' },
+                                { question: 'Executa coreografias simples? (Ex: gira, pula, abraça)' },
+                                { question: 'Imita animais tanto corporalmente quanto vocalmente durante atividades musicais?' },
+                                { question: 'Participa de brincadeiras de roda?' }
+                            ],
+                            'COM OBJETOS': [
+                                { question: 'Anda de triciclo com facilidade?' },
+                                { question: 'Brinca de cavalinho usando objetos como brinquedos?' },
+                                { question: 'Escala objetos de forma segura?' },
+                                { question: 'Reconhece e identifica diferentes setores e espaços? (Ex: cozinha, quarto, sala, pátio, brinquedoteca)' }
+                            ]
+                        }
+                    }
+                }
+            },
+             // Adicionar mais faixas etárias aqui...
+            '3-4': {}, '4-5': {}, '5-6': {}, '6-7': {}, '7-8': {}, '8-9': {}, '9-10': {}, '10-11': {}, '11-12': {}
+        };
+
+        const descriptiveTexts = {
+            desempenho: {
+                0: 'Não participa: o paciente não responde ou a atividade não é adequada para ele.',
+                1: 'Percebe, mas não participa: o paciente não completa a atividade, demonstra esforço ou curiosidade, mas não engajamento ativo.',
+                2: 'Percebe, tenta participar, mas não consegue: o paciente percebe a atividade, tenta participar, mas aparenta não conseguir. A resposta só ocorre com ajuda significativa do terapeuta.',
+                3: 'Participa, mas não como esperado: o paciente se engaja na atividade, mas a participação não atinge o nível esperado.',
+                4: 'Participa como esperado: o paciente realiza a atividade com desempenho de acordo com o esperado.',
+                5: 'Participa e supera o esperado: o paciente executa e supera o esperado.'
+            },
+            suporte: {
+                1: 'Máximo (Totalmente Físico): o paciente necessita de assistência física completa do musicoterapeuta para realizar a atividade.',
+                2: 'Moderado (Parcialmente Físico): o paciente recebe uma assistência física parcial, como um toque ou uma guia suave para iniciar ou continuar a atividade.',
+                3: 'Leve (Visual): o suporte é visual, sem contato físico. O terapeuta pode usar gestos, demonstrar a atividade ou apontar para o objeto.',
+                4: 'Mínimo (Verbal): o paciente precisa apenas de uma orientação verbal para realizar a atividade.',
+                5: 'Sem apoio (Independente): o paciente realiza a atividade de forma completamente autônoma, sem a necessidade de qualquer tipo de ajuda.'
+            }
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                console.log("Usuário autenticado:", userId);
+            } else {
+                try {
+                    if (__initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed: ", error);
+                    alert("Falha na autenticação. Verifique a conexão.");
+                }
+            }
+        });
+
+        const formatDate = (date) => {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        const calculateAge = (dob) => {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let ageInMonths = (today.getFullYear() - birthDate.getFullYear()) * 12;
+            ageInMonths -= birthDate.getMonth();
+            ageInMonths += today.getMonth();
+            return ageInMonths;
+        };
+
+        const getAgeGroup = (ageInMonths) => {
+            if (ageInMonths <= 12) return '0-1';
+            if (ageInMonths <= 24) return '1-2';
+            if (ageInMonths <= 36) return '2-3';
+            if (ageInMonths <= 48) return '3-4';
+            if (ageInMonths <= 60) return '4-5';
+            if (ageInMonths <= 72) return '5-6';
+            if (ageInMonths <= 84) return '6-7';
+            if (ageInMonths <= 96) return '7-8';
+            if (ageInMonths <= 108) return '8-9';
+            if (ageInMonths <= 120) return '9-10';
+            if (ageInMonths <= 132) return '10-11';
+            if (ageInMonths <= 144) return '11-12';
+            return '12+';
+        };
+
+        const ageGroupColors = {
+            '0-1': 'age-group-1',
+            '1-2': 'age-group-1',
+            '2-3': 'age-group-1',
+            '3-4': 'age-group-2',
+            '4-5': 'age-group-2',
+            '5-6': 'age-group-2',
+            '6-7': 'age-group-3',
+            '7-8': 'age-group-3',
+            '8-9': 'age-group-3',
+            '9-10': 'age-group-4',
+            '10-11': 'age-group-4',
+            '11-12': 'age-group-4',
+            '12+': 'age-group-4',
+        };
+
+        const scoreColors = ['score-0', 'score-1', 'score-2', 'score-3', 'score-4', 'score-5'];
+
+        const renderAssessmentForm = (ageGroup, patientAnswers = {}) => {
+            const assessmentDiv = document.getElementById('assessment-form');
+            assessmentDiv.innerHTML = '';
+            
+            const currentAgeData = evaluationData[ageGroup];
+            if (!currentAgeData) {
+                assessmentDiv.innerHTML = `<p class="text-red-500">Nenhum dado de avaliação encontrado para a faixa etária ${ageGroup}.</p>`;
+                return;
+            }
+
+            const ageGroupDisplay = document.createElement('h3');
+            ageGroupDisplay.textContent = `Faixa Etária de Avaliação: ${ageGroup} anos`;
+            ageGroupDisplay.className = `text-xl font-bold mb-4 p-4 rounded-lg shadow-sm ${ageGroupColors[ageGroup]}`;
+            assessmentDiv.appendChild(ageGroupDisplay);
+
+            const form = document.createElement('form');
+            form.id = 'assessment-data';
+            form.className = 'space-y-6';
+
+            for (const domainKey in currentAgeData.domains) {
+                const domain = currentAgeData.domains[domainKey];
+                const domainDiv = document.createElement('div');
+                domainDiv.className = 'bg-white p-6 rounded-xl shadow-md';
+                
+                const domainTitle = document.createElement('h4');
+                domainTitle.textContent = domainKey;
+                domainTitle.className = 'text-lg font-bold mb-4';
+                domainDiv.appendChild(domainTitle);
+
+                for (const subdomainKey in domain.subdomains) {
+                    const subdomain = domain.subdomains[subdomainKey];
+                    const subdomainDiv = document.createElement('div');
+                    subdomainDiv.className = 'border-t border-gray-200 pt-4 mt-4';
+
+                    const subdomainTitle = document.createElement('h5');
+                    subdomainTitle.textContent = subdomainKey;
+                    subdomainTitle.className = 'text-base font-semibold mb-2';
+                    subdomainDiv.appendChild(subdomainTitle);
+
+                    subdomain.forEach((item, index) => {
+                        const questionDiv = document.createElement('div');
+                        questionDiv.className = 'flex flex-col md:flex-row items-start md:items-center justify-between mb-4 bg-gray-50 p-4 rounded-lg';
+                        
+                        const question = document.createElement('p');
+                        question.textContent = `${index + 1}. ${item.question}`;
+                        question.className = 'flex-1 mb-2 md:mb-0 pr-4 font-medium text-gray-700';
+                        questionDiv.appendChild(question);
+                        
+                        const scoreContainer = document.createElement('div');
+                        scoreContainer.className = 'flex items-center space-x-4 flex-wrap';
+                        
+                        // Input de Desempenho
+                        const perfLabel = document.createElement('label');
+                        perfLabel.textContent = 'Desempenho:';
+                        perfLabel.htmlFor = `perf-${domainKey}-${subdomainKey}-${index}`;
+                        perfLabel.className = 'score-label-desempenho';
+                        scoreContainer.appendChild(perfLabel);
+                        const perfInput = document.createElement('select');
+                        perfInput.id = `perf-${domainKey}-${subdomainKey}-${index}`;
+                        perfInput.name = `desempenho-${domainKey}-${subdomainKey}-${index}`;
+                        perfInput.className = `score-input rounded-md px-2 py-1 text-center`;
+                        for (let i = 0; i <= 5; i++) {
+                            const option = document.createElement('option');
+                            option.value = i;
+                            option.textContent = i;
+                            perfInput.appendChild(option);
+                        }
+                        const placeholderOption = document.createElement('option');
+                        placeholderOption.value = '';
+                        placeholderOption.textContent = 'Selecione';
+                        placeholderOption.selected = true;
+                        placeholderOption.disabled = true;
+                        perfInput.appendChild(placeholderOption);
+
+                        perfInput.onchange = (e) => {
+                            const value = e.target.value;
+                            updateScoreColor(e.target, value);
+                        };
+                        scoreContainer.appendChild(perfInput);
+
+                        // Input de Suporte
+                        const supportLabel = document.createElement('label');
+                        supportLabel.textContent = 'Suporte:';
+                        supportLabel.htmlFor = `support-${domainKey}-${subdomainKey}-${index}`;
+                        supportLabel.className = 'score-label-suporte';
+                        scoreContainer.appendChild(supportLabel);
+                        const supportInput = document.createElement('select');
+                        supportInput.id = `support-${domainKey}-${subdomainKey}-${index}`;
+                        supportInput.name = `suporte-${domainKey}-${subdomainKey}-${index}`;
+                        supportInput.className = `score-input rounded-md px-2 py-1 text-center`;
+                        for (let i = 1; i <= 5; i++) {
+                            const option = document.createElement('option');
+                            option.value = i;
+                            option.textContent = i;
+                            supportInput.appendChild(option);
+                        }
+                        const placeholderOption2 = document.createElement('option');
+                        placeholderOption2.value = '';
+                        placeholderOption2.textContent = 'Selecione';
+                        placeholderOption2.selected = true;
+                        placeholderOption2.disabled = true;
+                        supportInput.appendChild(placeholderOption2);
+                        supportInput.onchange = (e) => updateScoreColor(e.target, e.target.value);
+                        scoreContainer.appendChild(supportInput);
+
+                        questionDiv.appendChild(scoreContainer);
+                        subdomainDiv.appendChild(questionDiv);
+                    });
+                    domainDiv.appendChild(subdomainDiv);
+                }
+                form.appendChild(domainDiv);
+            }
+            assessmentDiv.appendChild(form);
+        };
+        
+        const updateScoreColor = (element, value) => {
+            element.classList.remove(...scoreColors);
+            element.classList.remove('score-null');
+            if (value === '') {
+                element.classList.add('score-null');
+            } else {
+                element.classList.add(scoreColors[value]);
+            }
+        };
+
+        const generateReport = async () => {
+            const form = document.getElementById('assessment-data');
+            const formData = new FormData(form);
+            const scores = {};
+            const scoresBySubdomain = {};
+            let ageGroup = '';
+
+            const ageGroupDisplay = document.querySelector('#assessment-form h3');
+            if (ageGroupDisplay) {
+                const match = ageGroupDisplay.textContent.match(/Faixa Etária de Avaliação: (\S+)/);
+                if (match) {
+                    ageGroup = match[1];
+                }
+            }
+            
+            for (let [name, value] of formData.entries()) {
+                const parts = name.split('-');
+                const type = parts[0];
+                const domain = parts[1];
+                const subdomain = parts[2];
+                const questionIndex = parseInt(parts[3]);
+                
+                if (!scoresBySubdomain[domain]) scoresBySubdomain[domain] = {};
+                if (!scoresBySubdomain[domain][subdomain]) scoresBySubdomain[domain][subdomain] = [];
+                
+                const questionData = evaluationData[ageGroup].domains[domain].subdomains[subdomain][questionIndex];
+                
+                scoresBySubdomain[domain][subdomain].push({
+                    question: questionData.question,
+                    type: type,
+                    value: parseInt(value),
+                    domain: domain,
+                    subdomain: subdomain
+                });
+            }
+
+            let reportText = '';
+            
+            for (const domainKey in scoresBySubdomain) {
+                reportText += `<h4 class="text-xl font-bold mt-6 mb-2 text-blue-800">${domainKey}</h4>`;
+                for (const subdomainKey in scoresBySubdomain[domainKey]) {
+                    const questions = scoresBySubdomain[domainKey][subdomainKey];
+                    let perfSum = 0;
+                    let perfCount = 0;
+                    
+                    reportText += `<h5 class="font-semibold mt-4 mb-2 text-blue-600">${subdomainKey}</h5>`;
+                    
+                    questions.forEach(q => {
+                        if (q.type === 'desempenho' && !isNaN(q.value)) {
+                            perfSum += q.value;
+                            perfCount++;
+                        }
+                    });
+                    
+                    const avgPerf = perfCount > 0 ? (perfSum / perfCount).toFixed(2) : 'N/A';
+                    reportText += `<p class="italic mb-2 text-sm text-gray-600">Média de Desempenho do Subdomínio: ${avgPerf}</p>`;
+                    
+                    if (avgPerf < 3) {
+                        const previousAgeGroup = getAgeGroup(calculateAge(document.getElementById('dob').value) - 12);
+                        reportText += `<p class="font-bold text-red-500 mt-2">Critério de Regressão: A média de desempenho (${avgPerf}) é inferior a 3. Recomenda-se a avaliação deste subdomínio na faixa etária anterior (${previousAgeGroup}).</p>`;
+                    } else {
+                         reportText += `<p class="font-bold text-green-500 mt-2">Resultado da Avaliação: O desenvolvimento neste subdomínio é considerado típico para a faixa etária atual.</p>`;
+                    }
+                    
+                    // Geração do descritivo textual
+                    let descriptiveParagraph = '';
+                    questions.forEach(q => {
+                         if (q.type === 'desempenho' && !isNaN(q.value)) {
+                            descriptiveParagraph += `<p class="text-sm mt-1">**${q.question}**: ${descriptiveTexts.desempenho[q.value]}</p>`;
+                        }
+                        if (q.type === 'suporte' && !isNaN(q.value)) {
+                            descriptiveParagraph += `<p class="text-sm mt-1">**Nível de Suporte**: ${descriptiveTexts.suporte[q.value]}</p>`;
+                        }
+                    });
+                    reportText += `<div class="bg-gray-100 p-4 rounded-md mt-4 border-l-4 border-gray-400">${descriptiveParagraph}</div>`;
+                }
+            }
+
+            const reportOutput = document.getElementById('report-output');
+            reportOutput.innerHTML = reportText;
+            document.getElementById('assessment-container').classList.add('hidden');
+            document.getElementById('report-container').classList.remove('hidden');
+        };
+
+        const exportReport = () => {
+             const reportContent = document.getElementById('report-output').innerText;
+            if (!reportContent) {
+                alert("Nenhum relatório para exportar.");
+                return;
+            }
+
+            const patientName = document.getElementById('patient-name').value || 'avaliado';
+            const fileName = `Relatorio_${patientName}_${formatDate(new Date())}.txt`;
+            
+            const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            alert("Relatório exportado com sucesso!");
+        };
+
+        document.getElementById('start-assessment-btn').addEventListener('click', () => {
+            const patientName = document.getElementById('patient-name').value;
+            const dob = document.getElementById('dob').value;
+            const assessorName = document.getElementById('assessor-name').value;
+            const assessmentDate = document.getElementById('assessment-date').value;
+            
+            if (!patientName || !dob || !assessorName || !assessmentDate) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            const ageInMonths = calculateAge(dob);
+            const initialAgeGroup = getAgeGroup(ageInMonths);
+
+            document.getElementById('assessment-intro').classList.add('hidden');
+            document.getElementById('assessment-container').classList.remove('hidden');
+            document.getElementById('report-container').classList.add('hidden');
+
+            renderAssessmentForm(initialAgeGroup);
+        });
+
+        document.getElementById('save-assessment-btn').addEventListener('click', generateReport);
+        document.getElementById('export-report-btn').addEventListener('click', exportReport);
+
+        document.getElementById('back-to-home-btn').addEventListener('click', () => {
+            document.getElementById('assessment-intro').classList.remove('hidden');
+            document.getElementById('assessment-container').classList.add('hidden');
+            document.getElementById('report-container').classList.add('hidden');
+            document.getElementById('assessment-form').innerHTML = '';
+        });
+    </script>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <div id="loading" class="flex justify-center items-center h-screen">
+        <div class="text-xl font-semibold">Carregando aplicação...</div>
+    </div>
+    
+    <div id="app" class="hidden container mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-800">PREVIMMUS - Avaliação Musicoterapêutica</h1>
+        
+        <div id="assessment-intro" class="space-y-6">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Início da Avaliação</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="input-group">
+                    <label for="patient-name">Nome do Avaliado:</label>
+                    <input type="text" id="patient-name" class="rounded-lg">
+                </div>
+                <div class="input-group">
+                    <label for="dob">Data de Nascimento:</label>
+                    <input type="date" id="dob" class="rounded-lg">
+                </div>
+                <div class="input-group">
+                    <label for="assessor-name">Avaliador:</label>
+                    <input type="text" id="assessor-name" class="rounded-lg">
+                </div>
+                <div class="input-group">
+                    <label for="assessment-date">Data da Avaliação:</label>
+                    <input type="date" id="assessment-date" class="rounded-lg">
+                </div>
+            </div>
+            
+            <button id="start-assessment-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-blue-700 transition duration-200">
+                Iniciar Avaliação
+            </button>
+        </div>
+        
+        <div id="assessment-container" class="hidden">
+            <div id="assessment-form"></div>
+            
+            <div class="mt-8 flex justify-between space-x-4">
+                <button id="save-assessment-btn" class="flex-1 bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-green-700 transition duration-200">
+                    Gerar Relatório
+                </button>
+            </div>
+        </div>
+        
+        <div id="report-container" class="hidden mt-8">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Relatório de Avaliação</h2>
+            <div id="report-output" class="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-200"></div>
+            <div class="mt-6 flex justify-between space-x-4">
+                <button id="export-report-btn" class="flex-1 bg-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-purple-700 transition duration-200">
+                    Exportar Relatório
+                </button>
+                <button id="back-to-home-btn" class="flex-1 bg-gray-500 text-white font-bold py-3 px-6 rounded-xl shadow-md hover:bg-gray-600 transition duration-200">
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+        
+        <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <p>Gerando relatório...</p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
