@@ -3,29 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Modelos de Relatório</title>
-    <link rel="stylesheet" href="editor.css">
+    <title>Gerador de Relatório Evolutivo Musicoterapêutico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        .input-group, .output-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .output-group {
+            background-color: #e9ecef;
+        }
+        .output-content {
+            height: 150px;
+            background-color: #fff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .copy-button {
+            margin-top: 10px;
+            background-color: #28a745;
+        }
+        .copy-button:hover {
+            background-color: #1e7e34;
+        }
+        .generate-button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .output-container {
+            margin-top: 30px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Editor de Modelos de Relatório</h1>
 
-        <div class="editor-buttons">
-            <button id="loadTemplate">Carregar Modelo Padrão</button>
-            <label for="uploadJSON" class="upload-button">
-                Importar JSON
-                <input type="file" id="uploadJSON" accept=".json">
-            </label>
-            <button id="downloadJSON">Baixar Modelo JSON</button>
-        </div>
+<div class="container">
+    <h1>Assistente de Relatório Musicoterapêutico</h1>
+    <p>Insira as informações e notas. Clique em "Gerar Estrutura do Relatório" para formatar o texto em partes copiáveis, que podem ser refinadas por um Modelo de Linguagem (LLM).</p>
 
-        <div id="editor-container">
-            <p id="editor-message">Carregue ou crie seu modelo para começar.</p>
-        </div>
-
-        <button id="addCategory">Adicionar Nova Categoria</button>
+    <h2>Informações do Paciente e Notas</h2>
+    
+    <div class="input-group">
+        <label for="nome">Nome Completo:</label>
+        <input type="text" id="nome" value="DAVI DA SILVA DE CAMARGO">
+        <label for="dn">Data de Nascimento (DD/MM/AAAA):</label>
+        <input type="text" id="dn" value="13/12/2018">
+        <label for="diagnostico">Diagnóstico Clínico (Ex: TEA F84):</label>
+        <input type="text" id="diagnostico" value="Transtorno do Espectro Autista (F84)">
+        <label for="funcional">Diagnóstico Funcional Específico (Musicoterapia):</label>
+        <input type="text" id="funcional" value="Em fase inicial de estruturação, baseando-se na observação clínica de déficits em habilidades cognitivas, comunicação verbal e não-verbal, e processos de subjetivação.">
+        <label for="inicio_tto">Data de Início do TTO em MT (DD/MM/AAAA):</label>
+        <input type="text" id="inicio_tto" value="20/08/2025">
+        <label for="frequencia">Frequência Semanal:</label>
+        <input type="text" id="frequencia" value="Uma sessão por semana">
     </div>
 
-    <script src="editor.js"></script>
+    <div class="input-group">
+        <label for="quadro">Aspectos do Quadro Clínico/Funcional/Emocional/Social/Motor (Notas):</label>
+        <textarea id="quadro" rows="4">Em fase inicial de vinculação e avaliação. Apresentou resistência inicial, mas evoluiu para participação exploratória e intensa com instrumentos (teclado, ganzá, surdo). Interação com elementos de encaixe e buracos, o que sugere conexão simbólica inconsciente com questões de falta/vazio.</textarea>
+        <label for="avaliacao">Instrumentos/Escalas de Avaliação e Resultados (Notas):</label>
+        <textarea id="avaliacao" rows="3">Avaliação formal em curso (Escala PREVIMMUS e Anamnese continuada). Avaliação clínica e observacional (Benezon/Plurimodal). ISO caracterizado por exploração de dinâmicas e estruturas rítmicas em andamento moderado (95 bpm). Uso de espelhamento musical e improvisação conjunta.</textarea>
+    </div>
+
+    <div class="input-group">
+        <label for="objetivos">Objetivos do Tratamento (Um objetivo por linha):</label>
+        <textarea id="objetivos" rows="5">Promover autonomia, autoria e desenvolvimento lúdico de papéis.
+Facilitar a comunicação verbal e não-verbal.
+Aprimorar a atenção, memória, e funções executivas através da música.
+Desenvolver o controle respiratório consciente através de canções.
+Promover noções proprioceptivas mediante a integração do movimento corporal com o ritmo musical.</textarea>
+    </div>
+
+    <div class="input-group">
+        <label for="conduta">Conduta Terapêutica e Estratégias Utilizadas (Notas):</label>
+        <textarea id="conduta" rows="3">Musicoterapia Receptiva e Plurimodal. Estratégias de espelhamento musical, exercícios de sensibilização corporal, dinâmicas rítmicas e improvisação conjunta (piano/percussão). Uso de voz, movimento corporal e escuta ativa.</textarea>
+        <label for="evolucao">Reação, Evoluções, Objetivos Alcançados e Barreiras (Notas):</label>
+        <textarea id="evolucao" rows="4">Reagindo com notável evolução. Fortalecimento do vínculo terapêutico, superando resistência inicial. Prolongamento do contato visual e aumento da confiança. Redução de estereotipias em momentos de engajamento musical. Sem barreiras comportamentais significativas que dificultem novos repertórios.</textarea>
+    </div>
+
+    <div class="input-group">
+        <label for="orientacoes">Orientações Realizadas para Pais/Responsáveis (Notas):</label>
+        <textarea id="orientacoes" rows="3">Devolutiva dos progressos observados. Enfatizada a perspectiva de longo prazo do processo. Encorajamento para trazer artigos afetivos para a terapia. Ressaltada a importância de não reduzir o sujeito ao seu diagnóstico.</textarea>
+    </div>
+    
+    <div class="input-group">
+        <label for="conclusao_sugestao">Sugestão de Continuidade/Ajustes e Justificativa Teórico-Científica (Notas):</label>
+        <textarea id="conclusao_sugestao" rows="4">Sugestão de continuidade com a frequência atual (1x/semana), mas considerar 2x/semana após avaliação formal. Justificativa: Intensificação otimiza o *entrainment* cerebral e a formação de redes neurais (plasticidade), conforme a neurociência da música. Novos objetivos: aprofundamento da ISO e criação de Narrativas Musicais Pessoais.</textarea>
+    </div>
+
+    <div class="generate-button-container">
+        <button onclick="generateReport()">Gerar Estrutura do Relatório</button>
+    </div>
+
+    <div class="output-container">
+        <h2>Estrutura do Relatório (Campos Copiáveis)</h2>
+
+        <div class="output-group">
+            <label for="out_identificacao">1) Identificação do Paciente</label>
+            <textarea id="out_identificacao" class="output-content" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('out_identificacao')">Copiar</button>
+        </div>
+
+        <div class="output-group">
+            <label for="out_apresentacao">2) Apresentação do Quadro (Avaliação e Resultados)</label>
+            <textarea id="out_apresentacao" class="output-content" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('out_apresentacao')">Copiar</button>
+        </div>
+
+        <div class="output-group">
+            <label for="out_objetivos">3) Objetivos do Tratamento</label>
+            <textarea id="out_objetivos" class="output-content" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('out_objetivos')">Copiar</button>
+        </div>
+
+        <div class="output-group">
+            <label for="out_consideracoes">4) Considerações (Evoluções e Conduta)</label>
+            <textarea id="out_consideracoes" class="output-content" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('out_consideracoes')">Copiar</button>
+        </div>
+
+        <div class="output-group">
+            <label for="out_orientacoes">5) Orientações</label>
+            <textarea id="out_orientacoes" class="output-content" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('out_orientacoes')">Copiar</button>
+        </div>
+
+        <div class="output-group">
+            <label for="out_conclusao">6) Conclusão (Sugestões e Justificativa)</label>
+            <textarea id="out_conclusao" class="output-content" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('out_conclusao')">Copiar</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function generateReport() {
+        // Obtenção dos dados do paciente
+        const nome = document.getElementById('nome').value.trim();
+        const dn = document.getElementById('dn').value.trim();
+        const diagnostico = document.getElementById('diagnostico').value.trim();
+        const funcional = document.getElementById('funcional').value.trim();
+        const inicio_tto = document.getElementById('inicio_tto').value.trim();
+        const frequencia = document.getElementById('frequencia').value.trim();
+        
+        // Obtenção das notas
+        const quadro = document.getElementById('quadro').value.trim();
+        const avaliacao = document.getElementById('avaliacao').value.trim();
+        const objetivos = document.getElementById('objetivos').value.trim();
+        const conduta = document.getElementById('conduta').value.trim();
+        const evolucao = document.getElementById('evolucao').value.trim();
+        const orientacoes = document.getElementById('orientacoes').value.trim();
+        const conclusao_sugestao = document.getElementById('conclusao_sugestao').value.trim();
+
+        const [dia, mes, ano] = dn.split('/').map(Number);
+        const dataNasc = new Date(ano, mes - 1, dia);
+        const hoje = new Date();
+        const idadeMillis = hoje - dataNasc;
+        const idadeAnos = Math.floor(idadeMillis / (365.25 * 24 * 60 * 60 * 1000));
+
+        // Auxiliar para formatar Objetivos
+        const objetivosFormatados = objetivos.split('\n')
+            .map(obj => obj.trim())
+            .filter(obj => obj.length > 0)
+            .join('; ');
+
+        // 1) Identificação do Paciente
+        const out_identificacao = `Nome: ${nome}. Idade: ${idadeAnos} anos (DN: ${dn}). Diagnóstico Clínico: ${diagnostico}. Diagnóstico Funcional Específico (Musicoterapia): ${funcional}. Data de Início do TTO em MT: ${inicio_tto}. Frequência Semanal: ${frequencia}.`;
+        
+        // 2) Apresentação do Quadro
+        const out_apresentacao = `ASPECTOS DO QUADRO: ${quadro}. AVALIAÇÃO: ${avaliacao}.`;
+
+        // 3) Objetivos do Tratamento
+        const out_objetivos = `Os objetivos do tratamento musicoterapêutico são: ${objetivosFormatados}.`;
+
+        // 4) Considerações
+        const out_consideracoes = `CONDUTA E ESTRATÉGIAS: ${conduta}. REAÇÃO E EVOLUÇÕES: ${evolucao}.`;
+
+        // 5) Orientações
+        const out_orientacoes = `As orientações realizadas para os pais/responsáveis foram: ${orientacoes}.`;
+
+        // 6) Conclusão
+        const out_conclusao = `SUGESTÕES PARA A CONTINUIDADE E JUSTIFICATIVAS: ${conclusao_sugestao}.`;
+
+        // Inserir nos campos de saída
+        document.getElementById('out_identificacao').value = out_identificacao;
+        document.getElementById('out_apresentacao').value = out_apresentacao;
+        document.getElementById('out_objetivos').value = out_objetivos;
+        document.getElementById('out_consideracoes').value = out_consideracoes;
+        document.getElementById('out_orientacoes').value = out_orientacoes;
+        document.getElementById('out_conclusao').value = out_conclusao;
+    }
+
+    function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        element.select();
+        element.setSelectionRange(0, 99999); // Para dispositivos móveis
+        try {
+            navigator.clipboard.writeText(element.value);
+            alert('Texto copiado para a área de transferência!');
+        } catch (err) {
+            // Fallback para navegadores mais antigos
+            document.execCommand('copy');
+            alert('Texto copiado para a área de transferência! (Fallback)');
+        }
+    }
+
+    // Gerar o relatório inicial com os dados de exemplo preenchidos
+    window.onload = generateReport;
+</script>
+
 </body>
 </html>
